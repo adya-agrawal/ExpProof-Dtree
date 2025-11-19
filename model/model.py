@@ -74,4 +74,4 @@ def load_credit_and_train(epochs=800):
             print(f"Epoch {epoch}, Loss={loss.item():.4f}")
 
     # test data kept as numpy arrays
-    return model, X_train, y_train, X_test, y_test, input_dim
+    return model, X_train, y_train, X_test, y_test, input_dim, scaler
