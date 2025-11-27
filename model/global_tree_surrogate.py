@@ -1,5 +1,3 @@
-# global_tree_surrogate.py
-
 import numpy as np
 import torch
 from sklearn.tree import DecisionTreeClassifier, export_text
@@ -53,8 +51,6 @@ def train_global_surrogate_tree(model,
 
     return tree
 
-
-
 # ---------------------------------------------------------
 # 3. Compute validation accuracy of NN and tree
 # ---------------------------------------------------------
@@ -83,3 +79,77 @@ def print_global_rules(tree, input_dim):
     print("\n=== Global Decision Tree Rules ===")
     print(rules)
     return rules
+
+# ---------------------------------------------------------
+# 5. Tree to JSON
+# ---------------------------------------------------------
+def export_tree_json(tree, feature_names):
+    tree_ = tree.tree_
+    def recurse(node):
+        node_info = {}
+        # If leaf node
+        if tree_.feature[node] == -2:
+            # class is argmax of value array
+            cls = int(np.argmax(tree_.value[node][0]))
+            node_info["leaf"] = True
+            node_info["class"] = cls
+            node_info["samples"] = int(tree_.n_node_samples[node])
+            return node_info
+
+        # Otherwise: internal node
+        feature = tree_.feature[node]
+        threshold = float(tree_.threshold[node])
+
+        node_info["leaf"] = False
+        node_info["feature"] = feature_names[feature]
+        node_info["threshold"] = threshold
+        node_info["samples"] = int(tree_.n_node_samples[node])
+
+        left = recurse(tree_.children_left[node])
+        right = recurse(tree_.children_right[node])
+
+        node_info["left"] = left
+        node_info["right"] = right
+
+        return node_info
+
+    return recurse(0)
+
+# ---------------------------------------------------------
+#     Walks the decision tree for a single input x and produces an
+#     ExpProof-style witness JSON: the sequence of decisions for x.
+# ---------------------------------------------------------
+def export_witness_json(tree, x):
+    node = tree.tree_
+    feature = node.feature
+    threshold = node.threshold
+
+    witness = {
+        "input": x.tolist(),
+        "path": [],
+        "prediction": int(tree.predict(x.reshape(1, -1))[0])
+    }
+
+    idx = 0  # start at root
+
+    while feature[idx] != -2:  # while not leaf
+        feat = feature[idx]
+        thr = threshold[idx]
+        val = float(x[feat])
+
+        go_left = val <= thr
+        decision = {
+            "feature_index": int(feat),
+            "threshold": float(thr),
+            "value": float(val),
+            "comparison": "<=",
+            "result": bool(go_left)
+        }
+
+        witness["path"].append(decision)
+
+        # follow the path
+        idx = node.children_left[idx] if go_left else node.children_right[idx]
+
+    return witness
+

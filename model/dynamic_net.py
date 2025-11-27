@@ -1,5 +1,3 @@
-# dynamic_net.py
-import torch
 import torch.nn as nn
 
 class DynamicNet(nn.Module):

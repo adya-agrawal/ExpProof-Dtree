@@ -1,9 +1,8 @@
-# exp_layers.py
 import torch
 import torch.optim as optim
 from dynamic_net import DynamicNet
-from model import load_credit_and_train
-from global_tree_surrogate import train_global_surrogate_tree, compute_accuracies
+from model import load_credit_and_train, load_adult_and_train
+from global_tree_surrogate import train_global_surrogate_tree, compute_accuracies, print_global_rules
 from lime_shap import lime_fidelity, dtree_fidelity, shap_fidelity
 
 # Networks to test: total layers
@@ -12,7 +11,7 @@ L_LIST = [2, 4, 8, 16]
 results = {}
 
 # Load dataset once
-_, X_train, y_train, X_test, y_test, input_dim, scaler = load_credit_and_train(epochs=0)
+_, X_train, y_train, X_test, y_test, input_dim, scaler = load_adult_and_train(epochs=0)
 
 for L in L_LIST:
 
@@ -47,6 +46,7 @@ for L in L_LIST:
     tree = train_global_surrogate_tree(model, X_train,
                                        max_depth=4,
                                        min_samples_leaf=200)
+    print_global_rules(tree,input_dim)
 
     # Fidelity scores
     lime_g, _, _ = lime_fidelity(model, X_test, scaler, K=50, n_neigh=300, mode="gaussian")

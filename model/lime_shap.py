@@ -24,30 +24,26 @@ def nn_predict_proba(model, X_np):
 # ---------------------------------------------------------
 # LIME neighborhood sampling
 # ---------------------------------------------------------
-def sample_neighborhood(x_scaled, n_samples, d, scaler, mode="gaussian",
-                        sigma=1.0, half_edge=1.0):
+def sample_neighborhood(x, n_samples, d, scaler=None,
+                        mode="gaussian", sigma=0.2, half_edge=0.2):
 
-    # --- 1. Convert x from scaled space -> original space ---
-    x_orig = scaler.inverse_transform(x_scaled.reshape(1, -1))[0]
+    # x is already in processed feature space (scaled + one-hot)
+    # We perturb directly in that space, without inverse_transform.
 
-    # --- 2. Sample neighbors in ORIGINAL feature space ---
     if mode == "gaussian":
-        Z_orig = np.random.normal(loc=x_orig, scale=sigma, size=(n_samples, d))
+        Z = np.random.normal(loc=x, scale=sigma, size=(n_samples, d))
         w = np.ones(n_samples)
 
     elif mode == "uniform":
-        Z_orig = x_orig + np.random.uniform(-half_edge, half_edge, size=(n_samples, d))
-        dist = np.linalg.norm(Z_orig - x_orig, axis=1)
+        Z = x + np.random.uniform(-half_edge, half_edge, size=(n_samples, d))
+        dist = np.linalg.norm(Z - x, axis=1)
         kernel_width = np.sqrt(d) * 0.75
-        w = np.exp(-(dist**2) / (kernel_width**2))
+        w = np.exp(-(dist ** 2) / (kernel_width ** 2))
 
     else:
         raise ValueError("mode must be gaussian or uniform")
 
-    # --- 3. Convert neighborhood back to SCALED space for NN ---
-    Z_scaled = scaler.transform(Z_orig)
-
-    return Z_scaled, w
+    return Z, w
 
 
 # ---------------------------------------------------------
