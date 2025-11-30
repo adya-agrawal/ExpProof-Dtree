@@ -4,6 +4,8 @@ import time
 from sklearn.linear_model import Ridge
 import shap
 
+shap.utils._tqdm = lambda *args, **kwargs: args[0]
+
 # ---------------------------------------------------------
 # NN helpers
 # ---------------------------------------------------------
